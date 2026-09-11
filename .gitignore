@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+artifacts/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+atlas-key.bin*
