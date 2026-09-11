@@ -1,0 +1,55 @@
+{
+  "name": "media-gen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first Atlas image and video workbench",
+  "author": "Media Gen contributors",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "package": "npm run build && electron-builder --linux --dir",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "smoke:generation": "npm run build && node scripts/generation-smoke.mjs",
+    "format:check": "prettier --check src tests scripts package.json tsconfig.json"
+  },
+  "dependencies": {
+    "ipaddr.js": "^2.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.28.2",
+    "playwright": "^1.58.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.0",
+    "vitest": "5.0.0"
+  },
+  "build": {
+    "appId": "local.media-gen.workbench",
+    "productName": "Media Gen",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "category": "Graphics",
+      "target": [
+        "dir"
+      ]
+    }
+  }
+}
