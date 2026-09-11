@@ -15,6 +15,13 @@ declare global {
   }
 }
 const tabs = ["Create", "Library", "Jobs"] as const;
+const storageLabel: Record<Snapshot["credentials"]["storage"], string> = {
+  encrypted: "OS keyring (encrypted)",
+  file: "device file, readable only by your user account",
+  environment: "ATLASCLOUD_API_KEY environment variable",
+  session: "this session only",
+  none: "none",
+};
 type Value = string | number | boolean;
 // Coerce a draft value into something the main-process validator accepts for this control.
 function normalize(c: Control, raw: Value | undefined): Value {
@@ -395,8 +402,8 @@ function App() {
               />
               <p className="hint">
                 {data.credentials.secureAvailable
-                  ? "Keys are encrypted with your OS credential store."
-                  : "Secure OS storage is unavailable. Your key is kept in memory for this session only."}
+                  ? "Your key is saved encrypted through your OS keyring and restored on the next launch."
+                  : "No OS keyring is available. Your key is saved in a file that only your user account can read, and restored on the next launch."}
               </p>
               <div className="row">
                 <button
@@ -421,9 +428,9 @@ function App() {
               </div>
             </form>
             <div className="settings-note">
-              Storage: {data.credentials.storage}. Keys are never included in
-              your library or exports. Saving a key does not submit a generation
-              or verify the account balance.
+              Storage: {storageLabel[data.credentials.storage]}. Keys are never
+              included in your library or exports. Saving a key does not submit
+              a generation or verify the account balance.
             </div>
           </section>
           <section className="settings-card">

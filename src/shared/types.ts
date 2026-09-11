@@ -99,7 +99,7 @@ export interface Snapshot {
   };
   credentials: {
     configured: boolean;
-    storage: "encrypted" | "session" | "environment" | "none";
+    storage: "encrypted" | "file" | "session" | "environment" | "none";
     secureAvailable: boolean;
   };
 }

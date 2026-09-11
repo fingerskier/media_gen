@@ -8,3 +8,4 @@ artifacts/
 .env
 .env.*
 atlas-key.bin*
+atlas-key.txt*
