@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
+  constants,
   existsSync,
   lstatSync,
   readFileSync,
@@ -8,6 +9,8 @@ import {
   unlinkSync,
   openSync,
   closeSync,
+  fstatSync,
+  fchmodSync,
 } from "node:fs";
 import { join } from "node:path";
 import type { Snapshot } from "../shared/types";
@@ -45,11 +48,8 @@ export class Credentials {
         /* Locked or unavailable keyring: fall through to any plain file, else require entry. */
       }
     try {
-      const stat = lstatSync(this.plainFile, { throwIfNoEntry: false });
-      if (!stat) return;
-      if (!stat.isFile() || stat.size > 8192) throw Error("Unsafe key file");
-      const key = readFileSync(this.plainFile, "utf8").trim();
-      if (!valid(key)) throw Error("Unreadable key file");
+      const key = readPlain(this.plainFile);
+      if (key === undefined) return;
       this.key = key;
       this.storage = "file";
       // A keyring that became available later takes over from the plain file.
@@ -97,6 +97,7 @@ export class Credentials {
     this.key = key;
   }
   clear() {
+    // Delete before forgetting so a failed deletion surfaces instead of resurfacing next launch.
     remove(this.encryptedFile);
     remove(this.plainFile);
     this.key = undefined;
@@ -125,8 +126,26 @@ function write(file: string, content: Buffer | string) {
     } catch {}
   }
 }
+// Only a missing file is fine to ignore; any other failure must reach the caller.
 function remove(file: string) {
   try {
     unlinkSync(file);
-  } catch {}
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+}
+// Opened without following symlinks; a restored or copied file gets its user-only mode back.
+function readPlain(file: string): string | undefined {
+  if (!lstatSync(file, { throwIfNoEntry: false })) return undefined;
+  const fd = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  try {
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.size > 8192) throw Error("Unsafe key file");
+    if (stat.mode & 0o077) fchmodSync(fd, 0o600);
+    const key = readFileSync(fd, "utf8").trim();
+    if (!valid(key)) throw Error("Unreadable key file");
+    return key;
+  } finally {
+    closeSync(fd);
+  }
 }

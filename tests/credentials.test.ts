@@ -7,6 +7,7 @@ import {
   symlinkSync,
   readdirSync,
   statSync,
+  chmodSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -141,4 +142,40 @@ test("plain key files are refused when symlinked, oversized or malformed", () =>
   const multi = mkdtempSync(join(tmpdir(), "media-key-multi-"));
   writeFileSync(join(multi, "atlas-key.txt"), "one\ntwo\n");
   expect(new Credentials(multi, insecure).get()).toBeUndefined();
+});
+test("a loosely permissioned key file is tightened on load, not silently trusted", () => {
+  const dir = mkdtempSync(join(tmpdir(), "media-key-mode-"));
+  const insecure = {
+    isEncryptionAvailable: () => false,
+    encryptString: () => Buffer.alloc(0),
+    decryptString: () => "",
+  };
+  writeFileSync(join(dir, "atlas-key.txt"), "restored-key\n", { mode: 0o644 });
+  const c = new Credentials(dir, insecure);
+  expect(c.get()).toBe("restored-key");
+  expect(c.status().storage).toBe("file");
+  expect(statSync(join(dir, "atlas-key.txt")).mode & 0o777).toBe(0o600);
+});
+test("forget key fails loudly when the file cannot be deleted", () => {
+  const dir = mkdtempSync(join(tmpdir(), "media-key-locked-"));
+  const insecure = {
+    isEncryptionAvailable: () => false,
+    encryptString: () => Buffer.alloc(0),
+    decryptString: () => "",
+  };
+  const c = new Credentials(dir, insecure);
+  c.save("stuck-key");
+  chmodSync(dir, 0o500);
+  try {
+    if (process.getuid?.() === 0) return; // root ignores directory permissions
+    expect(() => c.clear()).toThrow();
+    expect(c.get()).toBe("stuck-key");
+    expect(c.status().storage).toBe("file");
+    expect(existsSync(join(dir, "atlas-key.txt"))).toBe(true);
+  } finally {
+    chmodSync(dir, 0o700);
+  }
+  c.clear();
+  expect(c.get()).toBeUndefined();
+  expect(existsSync(join(dir, "atlas-key.txt"))).toBe(false);
 });
