@@ -23,6 +23,19 @@ import type { Snapshot } from "../shared/types";
 import { z } from "zod";
 process.umask(0o077);
 app.setName("Media Gen");
+// Chromium only maps desktops it recognizes to a keyring backend; anything else (Hyprland,
+// sway, niri, ...) silently gets basic_text, which reports encryption as unavailable. Prefer
+// libsecret there; MEDIA_GEN_PASSWORD_STORE (e.g. kwallet6, basic) overrides the choice.
+if (process.platform === "linux") {
+  const known = /gnome|kde|unity|xfce|cinnamon|mate|pantheon|deepin|ukui|lxqt/i;
+  const store =
+    process.env.MEDIA_GEN_PASSWORD_STORE ||
+    (known.test(process.env.XDG_CURRENT_DESKTOP ?? "")
+      ? undefined
+      : "gnome-libsecret");
+  if (store && /^[a-z0-9-]+$/.test(store))
+    app.commandLine.appendSwitch("password-store", store);
+}
 protocol.registerSchemesAsPrivileged([
   {
     scheme: "media",

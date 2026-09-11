@@ -52,7 +52,7 @@ The test harness now gives each run its own temporary `--user-data-dir` in addit
 
 ## Platform observations and limitations
 
-The smoke runtime reported `safeStorage` backend `basic_text`. The app correctly refused persistent storage in that backend and used session-only credentials. A functioning encrypted OS keyring was not tested here; the app checks availability at runtime rather than assuming one.
+The smoke runtime originally reported `safeStorage` backend `basic_text`, and the app fell back to session-only credentials. The cause was Chromium's desktop detection on Hyprland, not a missing keyring; see "Credential persistence verification" below. The harnesses now pin `MEDIA_GEN_PASSWORD_STORE=basic` so they never touch the real keyring.
 
 Native-Wayland capture produced an entirely black screenshot despite passing DOM/media assertions. XWayland produced a nonblank screenshot and was visually inspected: controls, preview, navigation and result cards were legible and coherent. No compositor configuration or Electron sandbox setting was weakened. Use the verified XWayland launch command on this workstation; native-Wayland visual capture remains a platform follow-up.
 
@@ -86,3 +86,16 @@ Date: 2026-09-11. The curated four-model list is now a built-in fallback; Settin
 | Real Electron window against the live catalog                 | Settings listed 59 video models grouped by organization with base prices; selecting Kling v3.0 Std downloaded its schema; the composer rendered negative prompt, multi-shot toggle, shot type, duration, aspect ratio and cfg scale controls; no page errors (`artifacts/live-settings.png`, `artifacts/live-composer.png`) |
 
 No generation was submitted and no credits were spent. Atlas's server-side validation of dynamically built payloads remains unverified until a live generation is run.
+
+## Credential persistence verification
+
+Date: 2026-09-11. On this workstation (`XDG_CURRENT_DESKTOP=Hyprland`, gnome-keyring running) Electron auto-selected `basic_text` with encryption unavailable, so the key entered in Settings was lost on every restart. Launching with `--password-store=gnome-libsecret` selects `gnome_libsecret` and round-trips; with libsecret requested but no session bus, Electron reports encryption unavailable without crashing.
+
+| Command / check                                                                           | Observed result                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`                                                                                | 60 passing tests across 8 files (credential tests now cover the user-only file fallback, upgrade to the keyring, locked keyring, and refusal of symlinked, oversized or malformed key files)                                                                                                |
+| `npm run typecheck`, `npm run format:check`                                               | Passed                                                                                                                                                                                                                                                                                      |
+| `npm run smoke`, `npm run smoke:generation`                                               | Passed with `MEDIA_GEN_PASSWORD_STORE=basic`, exercising the file fallback                                                                                                                                                                                                                  |
+| Real Electron restart with the default backend choice (scratch script, temporary library) | Backend `gnome_libsecret`, encryption available; key saved from Settings reported `encrypted`, restored after relaunch; image default changed to FLUX Dev and restored after relaunch; only `atlas-key.bin` and `preferences.json` written; no key material in the snapshot; no page errors |
+
+The packaged Linux build was regenerated so the launcher includes the live catalog and this fix. Balance, generation and other keyrings (KWallet) remain unverified.

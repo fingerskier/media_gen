@@ -71,6 +71,7 @@ const app = await electron.launch({
     MEDIA_GEN_HOME: root,
     ATLASCLOUD_API_KEY: "",
     MEDIA_GEN_CATALOG: "off",
+    MEDIA_GEN_PASSWORD_STORE: "basic",
   },
   timeout: 30000,
 });

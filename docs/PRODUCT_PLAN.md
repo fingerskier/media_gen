@@ -101,7 +101,7 @@ Electron main process
 
 The main process is the sole authority for provider requests, secrets, metadata mutations, and media writes. The renderer has no Node integration and receives neither API keys nor general-purpose filesystem/network access. Use context isolation, sandboxing, a restrictive CSP, escaped provider errors, and navigation restrictions. API documentation or model output is never executable UI content.
 
-Use the OS credential store, testing its actual availability on the target desktop. If secure storage is unavailable or resolves to insecure plaintext fallback, offer session-only keys and explain the limitation; do not silently persist plaintext. Redact authorization headers and signed output URLs from routine logs. Keep credentials out of SQLite, sidecars, Git, and analytics. No telemetry by default.
+Use the OS credential store, testing its actual availability on the target desktop and requesting the libsecret backend where Chromium's desktop detection would otherwise fall back to `basic_text`. If no keyring is usable, persist the key in a user-only (0600) file beside the library and say so plainly in Settings; never pretend a plain file is encrypted. (Revised 2026-09-11: session-only storage lost the key on every restart on Hyprland, which the user rejected.) Redact authorization headers and signed output URLs from routine logs. Keep credentials out of SQLite, sidecars, Git, and analytics. No telemetry by default.
 
 ### Capability-driven provider boundary
 
