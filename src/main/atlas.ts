@@ -173,6 +173,12 @@ export function validateRecipe(input: unknown, catalog: ModelLookup): Recipe {
   }
   return { ...recipe, parameters };
 }
+// Schema increments are measured from the minimum; tolerate binary float error.
+export function onStep(value: number, min: number, step?: number) {
+  if (!step) return true;
+  const units = (value - min) / step;
+  return Math.abs(units - Math.round(units)) < 1e-6;
+}
 function acceptable(control: Model["controls"][number], value: unknown) {
   switch (control.kind) {
     case "select":
@@ -183,7 +189,8 @@ function acceptable(control: Model["controls"][number], value: unknown) {
         Number.isFinite(value) &&
         value >= control.min &&
         value <= control.max &&
-        (!control.integer || Number.isInteger(value))
+        (!control.integer || Number.isInteger(value)) &&
+        onStep(value, control.min, control.step)
       );
     case "toggle":
       return typeof value === "boolean";

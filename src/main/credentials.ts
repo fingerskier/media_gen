@@ -1,10 +1,12 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   existsSync,
   readFileSync,
   writeFileSync,
   renameSync,
   unlinkSync,
+  openSync,
+  closeSync,
 } from "node:fs";
 import { join } from "node:path";
 import type { Snapshot } from "../shared/types";
@@ -65,11 +67,21 @@ export class Credentials {
     if (!key.trim() || key.length > 4096 || /[\r\n]/.test(key))
       throw Error("Enter a valid API key");
     if (this.secureAvailable()) {
-      const temp = this.file + ".tmp";
-      writeFileSync(temp, this.secure.encryptString(key.trim()), {
-        mode: 0o600,
-      });
-      renameSync(temp, this.file);
+      // Exclusive create on an unpredictable name never follows a planted symlink.
+      const temp = this.file + "." + randomUUID() + ".tmp";
+      const fd = openSync(temp, "wx", 0o600);
+      try {
+        try {
+          writeFileSync(fd, this.secure.encryptString(key.trim()));
+        } finally {
+          closeSync(fd);
+        }
+        renameSync(temp, this.file);
+      } finally {
+        try {
+          unlinkSync(temp);
+        } catch {}
+      }
       this.storage = "encrypted";
     } else {
       if (existsSync(this.file)) unlinkSync(this.file);

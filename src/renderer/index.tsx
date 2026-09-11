@@ -25,7 +25,16 @@ function normalize(c: Control, raw: Value | undefined): Value {
       const n =
         typeof raw === "number" && Number.isFinite(raw) ? raw : c.default;
       const clamped = Math.min(c.max, Math.max(c.min, n));
-      return c.integer ? Math.round(clamped) : clamped;
+      // Snap to the schema increment (measured from min) so the payload matches the published step.
+      const snapped = c.step
+        ? Math.min(
+            c.max,
+            c.min + Math.round((clamped - c.min) / c.step) * c.step,
+          )
+        : clamped;
+      const decimals = c.step ? (String(c.step).split(".")[1] ?? "").length : 0;
+      const rounded = Number(snapped.toFixed(Math.min(decimals, 10)));
+      return c.integer ? Math.round(rounded) : rounded;
     }
     case "toggle":
       return typeof raw === "boolean" ? raw : c.default;

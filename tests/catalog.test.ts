@@ -197,6 +197,7 @@ test("schema-derived controls validate, clamp nothing, and omit empty optional t
     input({
       negative_prompt: { type: "string" },
       steps: { type: "integer", minimum: 1, maximum: 8, default: 4 },
+      cfg: { type: "number", minimum: 0, maximum: 1, step: 0.05, default: 0.5 },
       generate_audio: { type: "boolean", default: true },
       seed: { type: "integer", default: -1 },
     }),
@@ -210,7 +211,11 @@ test("schema-derived controls validate, clamp nothing, and omit empty optional t
   expect(
     validateRecipe({ ...base, parameters: { negative_prompt: "" } }, catalog)
       .parameters,
-  ).toEqual({ seed: -1, steps: 4, generate_audio: true });
+  ).toEqual({ seed: -1, steps: 4, cfg: 0.5, generate_audio: true });
+  expect(
+    validateRecipe({ ...base, parameters: { cfg: 0.15 } }, catalog).parameters
+      .cfg,
+  ).toBe(0.15);
   expect(
     validateRecipe(
       {
@@ -226,11 +231,14 @@ test("schema-derived controls validate, clamp nothing, and omit empty optional t
   ).toEqual({
     seed: -1,
     steps: 8,
+    cfg: 0.5,
     generate_audio: false,
     negative_prompt: "blurry",
   });
   for (const parameters of [
     { steps: 9 },
+    { cfg: 0.03 },
+    { cfg: 1.05 },
     { steps: 2.5 },
     { steps: "4" },
     { generate_audio: "yes" },

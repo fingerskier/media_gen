@@ -1,5 +1,12 @@
 import { test, expect } from "vitest";
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  existsSync,
+  writeFileSync,
+  symlinkSync,
+  readdirSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Credentials } from "../src/main/credentials";
@@ -54,4 +61,24 @@ test("credential reference is stable and non-secret, changes with key and clears
   expect(a.reference()).not.toBe(reference);
   a.clear();
   expect(a.reference()).toBeUndefined();
+});
+test("a planted symlink at a temporary name is never followed when saving a key", () => {
+  const dir = mkdtempSync(join(tmpdir(), "media-key-link-"));
+  const outside = join(dir, "outside");
+  writeFileSync(outside, "original");
+  symlinkSync(outside, join(dir, "atlas-key.bin.tmp"));
+  const secure = {
+    isEncryptionAvailable: () => true,
+    getSelectedStorageBackend: () => "gnome_libsecret",
+    encryptString: () => Buffer.from("encrypted-test-fixture"),
+    decryptString: () => "test-private-key",
+  };
+  new Credentials(dir, secure).save("test-private-key");
+  expect(readFileSync(outside, "utf8")).toBe("original");
+  expect(readFileSync(join(dir, "atlas-key.bin"), "utf8")).toBe(
+    "encrypted-test-fixture",
+  );
+  expect(readdirSync(dir).filter((f) => f.endsWith(".tmp"))).toEqual([
+    "atlas-key.bin.tmp",
+  ]);
 });
