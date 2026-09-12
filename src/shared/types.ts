@@ -115,6 +115,7 @@ export interface Bridge {
   stopTracking(id: string): Promise<void>;
   exportAsset(id: string): Promise<boolean>;
   reveal(id: string): Promise<void>;
+  openAsset(id: string): Promise<void>;
 }
 export interface Provider {
   submit(recipe: Recipe, key: string): Promise<string>;

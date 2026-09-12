@@ -13,5 +13,6 @@ const bridge: Bridge = {
   stopTracking: (id) => ipcRenderer.invoke("stop-tracking", id),
   exportAsset: (id) => ipcRenderer.invoke("export", id),
   reveal: (id) => ipcRenderer.invoke("reveal", id),
+  openAsset: (id) => ipcRenderer.invoke("open", id),
 };
 contextBridge.exposeInMainWorld("mediaGen", bridge);

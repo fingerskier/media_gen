@@ -281,34 +281,61 @@ function App() {
       "Settings copied. Edit the prompt before generating a new version.",
     );
   }
+  // Hands the original file to the OS: the file manager or the default viewer/player.
+  const fileLinks = (a: PublicAsset) => (
+    <div className="file-links">
+      <button
+        className="text-button"
+        disabled={a.missing}
+        aria-label="Open in default app"
+        title="Open with the default viewer or player"
+        onClick={() => void action(() => window.mediaGen.openAsset(a.id))}
+      >
+        Open ↗
+      </button>
+      <button
+        className="text-button"
+        disabled={a.missing}
+        title="Show in the file manager"
+        onClick={() => void action(() => window.mediaGen.reveal(a.id))}
+      >
+        Show in folder
+      </button>
+    </div>
+  );
   const thumbnails = (assets: PublicAsset[]) =>
     assets.map((a) => {
       const j = data?.jobs.find((j) => j.id === a.jobId);
       return (
-        <button
+        <div
           key={a.id}
           className={"thumb " + (selected === a.id ? "selected" : "")}
-          aria-label={"Open " + (j?.recipe.prompt ?? "result")}
-          onClick={() => open(a)}
         >
-          {a.missing ? (
-            <span>Missing file</span>
-          ) : a.mime.startsWith("image/") ? (
-            <img src={a.url} alt="" loading="lazy" />
-          ) : (
-            <div className="video-thumb">
-              <span>▷</span>
-              <small>VIDEO</small>
+          <button
+            className="thumb-main"
+            aria-label={"Open " + (j?.recipe.prompt ?? "result")}
+            onClick={() => open(a)}
+          >
+            {a.missing ? (
+              <span>Missing file</span>
+            ) : a.mime.startsWith("image/") ? (
+              <img src={a.url} alt="" loading="lazy" />
+            ) : (
+              <div className="video-thumb">
+                <span>▷</span>
+                <small>VIDEO</small>
+              </div>
+            )}
+            <div>
+              <strong>{j?.recipe.prompt ?? "Untitled"}</strong>
+              <small>
+                {j?.recipe.mode === "video" ? "Video" : "Image"} ·{" "}
+                {j ? new Date(j.created).toLocaleDateString() : ""}
+              </small>
             </div>
-          )}
-          <div>
-            <strong>{j?.recipe.prompt ?? "Untitled"}</strong>
-            <small>
-              {j?.recipe.mode === "video" ? "Video" : "Image"} ·{" "}
-              {j ? new Date(j.created).toLocaleDateString() : ""}
-            </small>
-          </div>
-        </button>
+          </button>
+          {fileLinks(a)}
+        </div>
       );
     });
   return (
@@ -582,6 +609,20 @@ function App() {
                     </p>
                     <small>{new Date(j.created).toLocaleString()}</small>
                     {j.message && <p className="job-message">{j.message}</p>}
+                    {data.assets
+                      .filter((a) => a.jobId === j.id)
+                      .map((a, i, all) => (
+                        <div key={a.id} className="job-result">
+                          {all.length > 1 && <small>Result {i + 1}</small>}
+                          <button
+                            className="text-button"
+                            onClick={() => open(a)}
+                          >
+                            View
+                          </button>
+                          {fileLinks(a)}
+                        </div>
+                      ))}
                   </div>
                   {j.state === "queued" && (
                     <button
@@ -850,6 +891,17 @@ function App() {
               <div>
                 <button disabled={!job} onClick={reuse}>
                   Reuse settings
+                </button>
+                <button
+                  disabled={!asset || asset.missing}
+                  aria-label="Open in default app"
+                  title="Open with the default viewer or player"
+                  onClick={() =>
+                    asset &&
+                    void action(() => window.mediaGen.openAsset(asset.id))
+                  }
+                >
+                  Open
                 </button>
                 <button
                   disabled={!asset || asset.missing}

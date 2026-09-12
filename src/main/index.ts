@@ -185,6 +185,12 @@ if (!app.requestSingleInstanceLock()) {
         const asset = getAsset(assetId);
         shell.showItemInFolder(assetPath(root, asset.filename));
       });
+      handle("open", async (assetId: unknown) => {
+        const asset = getAsset(assetId);
+        // openPath resolves with an error description instead of rejecting.
+        const failure = await shell.openPath(assetPath(root, asset.filename));
+        if (failure) throw Error(failure);
+      });
       session.defaultSession.setPermissionRequestHandler(
         (_contents, _permission, callback) => callback(false),
       );

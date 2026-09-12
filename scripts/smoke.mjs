@@ -437,6 +437,53 @@ try {
     (await page.evaluate(() => window.mediaGen.snapshot())).modelDefaults.video,
     "alibaba/wan-2.5/text-to-video",
   );
+  // Library and Jobs hand the original file to the OS through the narrow bridge. Stub the
+  // shell so the harness never launches a viewer or file manager on the host.
+  await app.evaluate(({ shell }) => {
+    globalThis.__opened = [];
+    shell.openPath = async (path) => {
+      globalThis.__opened.push(["open", path]);
+      return "";
+    };
+    shell.showItemInFolder = (path) => {
+      globalThis.__opened.push(["reveal", path]);
+    };
+  });
+  await page.getByRole("button", { name: "Library", exact: true }).click();
+  const libraryCard = page.locator(".library-grid .thumb", {
+    hasText: "TEST FIXTURE IMAGE",
+  });
+  await libraryCard
+    .getByRole("button", { name: "Open in default app", exact: true })
+    .click();
+  await libraryCard
+    .getByRole("button", { name: "Show in folder", exact: true })
+    .click();
+  await page.screenshot({ path: "artifacts/desktop-smoke-library.png" });
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "Jobs", exact: false })
+    .click();
+  const videoRow = page.locator(".job-list article", {
+    hasText: "TEST FIXTURE VIDEO",
+  });
+  await videoRow
+    .getByRole("button", { name: "Open in default app", exact: true })
+    .click();
+  await videoRow
+    .getByRole("button", { name: "Show in folder", exact: true })
+    .click();
+  await page.screenshot({ path: "artifacts/desktop-smoke-jobs.png" });
+  const opened = await app.evaluate(() => globalThis.__opened);
+  assert.equal(opened.length, 4);
+  assert.deepEqual(
+    opened.map(([kind]) => kind),
+    ["open", "reveal", "open", "reveal"],
+  );
+  for (const [, path] of opened) assert.ok(path.startsWith(root + "/"), path);
+  assert.ok(opened[0][1].endsWith(".png"));
+  assert.ok(opened[2][1].endsWith(".mp4"));
+  await page.getByRole("button", { name: "Create", exact: true }).click();
   const report = {
     result: "PASS",
     kind: "LOCAL FIXTURES — NOT LIVE GENERATION",
@@ -451,6 +498,7 @@ try {
       "byte-identical export",
       "MP4 play/seek/mute",
       "offline restart image/video",
+      "Library/Jobs open in default app and show in folder",
     ],
     screenshot: resolve("artifacts/desktop-smoke.png"),
   };

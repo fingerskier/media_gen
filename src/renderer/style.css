@@ -481,8 +481,46 @@ select {
   font-size: 9px;
   letter-spacing: 2px;
 }
-.thumb > div:last-child:not(.video-thumb) {
+.thumb-main {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+.thumb-main:hover:not(:disabled) {
+  background: #1d2a2c;
+}
+.thumb-main:focus-visible {
+  outline-offset: -2px;
+}
+.thumb-main > div:last-child:not(.video-thumb) {
   padding: 10px;
+}
+.file-links {
+  display: flex;
+  gap: 14px;
+  padding: 0 10px 6px;
+}
+.file-links .text-button {
+  padding: 4px 0;
+  font-size: 10px;
+}
+.job-result {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+.job-result .file-links {
+  padding: 0;
+}
+.job-result .text-button {
+  padding: 4px 0;
+  font-size: 11px;
 }
 .thumb strong {
   display: block;
