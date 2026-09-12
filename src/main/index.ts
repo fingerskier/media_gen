@@ -36,6 +36,15 @@ if (process.platform === "linux") {
   if (store && /^[a-z0-9-]+$/.test(store))
     app.commandLine.appendSwitch("password-store", store);
 }
+// Hardware-decoded video frames can stop the whole window from being presented on Linux
+// compositors (observed on Hyprland + NVIDIA: the player froze on a spinner and the window
+// flickered to transparent while playback state stayed healthy). Generated clips are short,
+// so software decoding costs little. MEDIA_GEN_HARDWARE_VIDEO_DECODE=1 opts back in.
+if (
+  process.platform === "linux" &&
+  process.env.MEDIA_GEN_HARDWARE_VIDEO_DECODE !== "1"
+)
+  app.commandLine.appendSwitch("disable-accelerated-video-decode");
 protocol.registerSchemesAsPrivileged([
   {
     scheme: "media",
