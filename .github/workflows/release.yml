@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            runner: ubuntu-latest
+            script: package:linux
+          - os: windows
+            runner: windows-latest
+            script: package:win
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set package version from tag
+        shell: bash
+        run: |
+          # v0.1 -> 0.1.0, v0.1.2 -> 0.1.2, so artifact names match the tag.
+          version="${GITHUB_REF_NAME#v}"
+          IFS=. read -r major minor patch <<< "$version"
+          version="${major:-0}.${minor:-0}.${patch:-0}"
+          npm version "$version" --no-git-tag-version --allow-same-version
+          echo "Building version $version"
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Package
+        run: npm run ${{ matrix.script }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            release/*.AppImage
+            release/*.exe
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Media Gen ${{ github.ref_name }}
+          generate_release_notes: true
+          files: artifacts/*
+          body: |
+            Desktop builds of Media Gen for this tag.
+
+            - **Linux**: the `.AppImage` (make it executable, then run it).
+            - **Windows**: the installer `.exe`, or the `-portable.exe` that runs without installing.
+
+            `ffprobe` (from FFmpeg) must be installed and on your PATH on every platform; the app uses it to validate downloaded media. Builds are not code-signed, so Windows SmartScreen and some browsers will warn on first run.

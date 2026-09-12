@@ -27,6 +27,17 @@ npm start -- --ozone-platform=x11
 
 On Linux the app disables Chromium's hardware video decoding: with it on, native Wayland playback on an NVIDIA GPU left the player frozen on a spinner and made the whole window flicker to transparent, even though decoding and playback state were healthy. Generated clips are short, so software decoding costs little; set `MEDIA_GEN_HARDWARE_VIDEO_DECODE=1` to opt back in. No compositor or system configuration is changed.
 
+## Releases
+
+Pushing a tag that starts with `v` (for example `v0.1`) runs the Release workflow in GitHub Actions. It typechecks, runs the unit tests, builds a Linux AppImage and a Windows installer plus portable executable with electron-builder, and publishes a GitHub Release with those files attached. The package version is taken from the tag (`v0.1` becomes `0.1.0`) so the file names match the release. Builds are not code-signed. `ffprobe` must be installed on the machine that runs the app, on every platform.
+
+```sh
+git tag v0.1
+git push origin v0.1
+```
+
+`npm run package:linux` and `npm run package:win` produce the same files locally into `release/`.
+
 Build a standalone Linux directory bundle (Node/npm not needed to launch the bundle; `ffprobe` remains a runtime dependency):
 
 ```sh

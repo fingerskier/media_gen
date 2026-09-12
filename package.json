@@ -15,7 +15,9 @@
     "package": "npm run build && electron-builder --linux --dir",
     "smoke": "npm run build && node scripts/smoke.mjs",
     "smoke:generation": "npm run build && node scripts/generation-smoke.mjs",
-    "format:check": "prettier --check src tests scripts package.json tsconfig.json"
+    "format:check": "prettier --check src tests scripts package.json tsconfig.json",
+    "package:linux": "npm run build && electron-builder --linux --publish never",
+    "package:win": "npm run build && electron-builder --win --publish never"
   },
   "dependencies": {
     "ipaddr.js": "^2.2.0",
@@ -48,8 +50,22 @@
     "linux": {
       "category": "Graphics",
       "target": [
-        "dir"
+        "AppImage"
       ]
+    },
+    "artifactName": "media-gen-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "media-gen-${version}-${os}-${arch}-portable.${ext}"
     }
   }
 }
