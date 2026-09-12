@@ -136,7 +136,10 @@ function remove(file: string) {
 }
 // Opened without following symlinks; a restored or copied file gets its user-only mode back.
 function readPlain(file: string): string | undefined {
-  if (!lstatSync(file, { throwIfNoEntry: false })) return undefined;
+  const target = lstatSync(file, { throwIfNoEntry: false });
+  if (!target) return undefined;
+  // O_NOFOLLOW is unavailable on Windows, so refuse links from the lstat result as well.
+  if (!target.isFile()) throw Error("Unsafe key file");
   const fd = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {
     const stat = fstatSync(fd);
